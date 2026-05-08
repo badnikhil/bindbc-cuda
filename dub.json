@@ -1,0 +1,49 @@
+{
+  "name": "bindbc-cuda",
+  "description": "Static and dynamic D bindings for the NVIDIA CUDA Driver API, compatible with BetterC, @nogc, and nothrow.",
+  "authors": ["Nikhil"],
+  "license": "BSL-1.0",
+
+  "targetType": "staticLibrary",
+  "targetPath": "lib",
+  "targetName": "BindBC_CUDA",
+
+  "configurations": [
+    {
+      "name": "dynamic",
+      "dependencies": {
+        "bindbc-loader": "~>1.1"
+      }
+    },
+    {
+      "name": "dynamicBC",
+      "dependencies": {
+        "bindbc-loader": "~>1.1"
+      },
+      "subConfigurations": {
+        "bindbc-loader": "yesBC"
+      },
+      "buildOptions": ["betterC"]
+    },
+    {
+      "name": "static",
+      "versions": ["BindCUDA_Static"],
+      "excludedSourceFiles": ["source/bindbc/cuda/binddynamic.d"]
+    },
+    {
+      "name": "staticBC",
+      "versions": ["BindCUDA_Static"],
+      "buildOptions": ["betterC"],
+      "excludedSourceFiles": ["source/bindbc/cuda/binddynamic.d"]
+    },
+    {
+      "name": "test",
+      "targetType": "executable",
+      "mainSourceFile": "test.d",
+      "versions": ["CUDA_132"],
+      "dependencies": {
+        "bindbc-loader": "~>1.1"
+      }
+    }
+  ]
+}
