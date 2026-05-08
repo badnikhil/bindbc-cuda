@@ -34,6 +34,15 @@ extern(C) @nogc nothrow {
     alias pcuCtxSetCurrent = CUresult function(CUcontext ctx);
     alias pcuCtxGetCurrent = CUresult function(CUcontext* pctx);
     alias pcuCtxSynchronize = CUresult function();
+    alias pcuCtxPushCurrent = CUresult function(CUcontext ctx);
+    alias pcuCtxPopCurrent = CUresult function(CUcontext* pctx);
+    alias pcuCtxDetach = CUresult function(CUcontext ctx);
+    alias pcuCtxSetLimit = CUresult function(int limit, size_t value);
+    alias pcuCtxGetLimit = CUresult function(size_t* pvalue, int limit);
+    alias pcuCtxSetSharedMemConfig = CUresult function(int config);
+    alias pcuCtxGetSharedMemConfig = CUresult function(int* pConfig);
+    alias pcuCtxGetApiVersion = CUresult function(CUcontext ctx, uint* ver);
+    alias pcuCtxGetStreamPriorityRange = CUresult function(int* leastPriority, int* greatestPriority);
 
     // Module management
     alias pcuModuleLoad = CUresult function(CUmodule* mod, const(char)* fname);
@@ -49,11 +58,18 @@ extern(C) @nogc nothrow {
     alias pcuMemcpyDtoD = CUresult function(CUdeviceptr dstDevice, CUdeviceptr srcDevice, size_t byteCount);
     alias pcuMemsetD8 = CUresult function(CUdeviceptr dstDevice, ubyte uc, size_t n);
     alias pcuMemsetD32 = CUresult function(CUdeviceptr dstDevice, uint ui, size_t n);
+    alias pcuMemGetAddressRange = CUresult function(CUdeviceptr* pbase, size_t* psize, CUdeviceptr dptr);
+    alias pcuMemAllocManaged = CUresult function(CUdeviceptr* dptr, size_t bytesize, uint flags);
+    alias pcuMemPrefetchAsync = CUresult function(CUdeviceptr devPtr, size_t count, CUdevice dstDevice, CUstream hStream);
 
     // Stream management
     alias pcuStreamCreate = CUresult function(CUstream* phStream, uint flags);
     alias pcuStreamDestroy = CUresult function(CUstream hStream);
     alias pcuStreamSynchronize = CUresult function(CUstream hStream);
+    alias pcuStreamCreateWithPriority = CUresult function(CUstream* phStream, uint flags, int priority);
+    alias pcuStreamGetFlags = CUresult function(CUstream hStream, uint* flags);
+    alias pcuStreamGetPriority = CUresult function(CUstream hStream, int* priority);
+    alias pcuStreamWaitEvent = CUresult function(CUstream hStream, CUevent hEvent, uint flags);
 
     // Event management
     alias pcuEventCreate = CUresult function(CUevent* phEvent, uint flags);
@@ -89,6 +105,15 @@ __gshared {
     pcuCtxSetCurrent cuCtxSetCurrent;
     pcuCtxGetCurrent cuCtxGetCurrent;
     pcuCtxSynchronize cuCtxSynchronize;
+    pcuCtxPushCurrent cuCtxPushCurrent;
+    pcuCtxPopCurrent cuCtxPopCurrent;
+    pcuCtxDetach cuCtxDetach;
+    pcuCtxSetLimit cuCtxSetLimit;
+    pcuCtxGetLimit cuCtxGetLimit;
+    pcuCtxSetSharedMemConfig cuCtxSetSharedMemConfig;
+    pcuCtxGetSharedMemConfig cuCtxGetSharedMemConfig;
+    pcuCtxGetApiVersion cuCtxGetApiVersion;
+    pcuCtxGetStreamPriorityRange cuCtxGetStreamPriorityRange;
 
     pcuModuleLoad cuModuleLoad;
     pcuModuleLoadData cuModuleLoadData;
@@ -102,10 +127,17 @@ __gshared {
     pcuMemcpyDtoD cuMemcpyDtoD;
     pcuMemsetD8 cuMemsetD8;
     pcuMemsetD32 cuMemsetD32;
+    pcuMemGetAddressRange cuMemGetAddressRange;
+    pcuMemAllocManaged cuMemAllocManaged;
+    pcuMemPrefetchAsync cuMemPrefetchAsync;
 
     pcuStreamCreate cuStreamCreate;
     pcuStreamDestroy cuStreamDestroy;
     pcuStreamSynchronize cuStreamSynchronize;
+    pcuStreamCreateWithPriority cuStreamCreateWithPriority;
+    pcuStreamGetFlags cuStreamGetFlags;
+    pcuStreamGetPriority cuStreamGetPriority;
+    pcuStreamWaitEvent cuStreamWaitEvent;
 
     pcuEventCreate cuEventCreate;
     pcuEventDestroy cuEventDestroy;
@@ -211,6 +243,15 @@ CUDASupport loadCUDA(const(char)* libName) {
     lib.bindSymbol(cast(void**)&cuCtxSetCurrent, "cuCtxSetCurrent");
     lib.bindSymbol(cast(void**)&cuCtxGetCurrent, "cuCtxGetCurrent");
     lib.bindSymbol(cast(void**)&cuCtxSynchronize, "cuCtxSynchronize");
+    lib.bindSymbol(cast(void**)&cuCtxPushCurrent, "cuCtxPushCurrent_v2");
+    lib.bindSymbol(cast(void**)&cuCtxPopCurrent, "cuCtxPopCurrent_v2");
+    lib.bindSymbol(cast(void**)&cuCtxDetach, "cuCtxDetach");
+    lib.bindSymbol(cast(void**)&cuCtxSetLimit, "cuCtxSetLimit");
+    lib.bindSymbol(cast(void**)&cuCtxGetLimit, "cuCtxGetLimit");
+    lib.bindSymbol(cast(void**)&cuCtxSetSharedMemConfig, "cuCtxSetSharedMemConfig");
+    lib.bindSymbol(cast(void**)&cuCtxGetSharedMemConfig, "cuCtxGetSharedMemConfig");
+    lib.bindSymbol(cast(void**)&cuCtxGetApiVersion, "cuCtxGetApiVersion");
+    lib.bindSymbol(cast(void**)&cuCtxGetStreamPriorityRange, "cuCtxGetStreamPriorityRange");
 
     // Module management 
     lib.bindSymbol(cast(void**)&cuModuleLoad, "cuModuleLoad");
@@ -226,11 +267,18 @@ CUDASupport loadCUDA(const(char)* libName) {
     lib.bindSymbol(cast(void**)&cuMemcpyDtoD, "cuMemcpyDtoD_v2");
     lib.bindSymbol(cast(void**)&cuMemsetD8, "cuMemsetD8_v2");
     lib.bindSymbol(cast(void**)&cuMemsetD32, "cuMemsetD32_v2");
+    lib.bindSymbol(cast(void**)&cuMemGetAddressRange, "cuMemGetAddressRange_v2");
+    lib.bindSymbol(cast(void**)&cuMemAllocManaged, "cuMemAllocManaged");
+    lib.bindSymbol(cast(void**)&cuMemPrefetchAsync, "cuMemPrefetchAsync");
 
     // Stream management 
     lib.bindSymbol(cast(void**)&cuStreamCreate, "cuStreamCreate");
     lib.bindSymbol(cast(void**)&cuStreamDestroy, "cuStreamDestroy_v2");
     lib.bindSymbol(cast(void**)&cuStreamSynchronize, "cuStreamSynchronize");
+    lib.bindSymbol(cast(void**)&cuStreamCreateWithPriority, "cuStreamCreateWithPriority");
+    lib.bindSymbol(cast(void**)&cuStreamGetFlags, "cuStreamGetFlags");
+    lib.bindSymbol(cast(void**)&cuStreamGetPriority, "cuStreamGetPriority");
+    lib.bindSymbol(cast(void**)&cuStreamWaitEvent, "cuStreamWaitEvent");
 
     // Event management
     lib.bindSymbol(cast(void**)&cuEventCreate, "cuEventCreate");

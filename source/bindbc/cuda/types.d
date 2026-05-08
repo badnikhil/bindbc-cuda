@@ -162,3 +162,8 @@ enum CUevent_flags {
     CU_EVENT_DISABLE_TIMING = 0x2,
     CU_EVENT_INTERPROCESS   = 0x4,
 }
+
+/// Managed memory attachment flags for cuMemAllocManaged.
+enum CU_MEM_ATTACH_GLOBAL = 0x1;
+enum CU_MEM_ATTACH_HOST   = 0x2;
+enum CU_MEM_ATTACH_SINGLE = 0x4;
