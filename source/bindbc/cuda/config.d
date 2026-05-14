@@ -18,6 +18,8 @@ enum staticBinding = (){
 enum CUDASupport {
     noLibrary,
     badLibrary,
+    cuda80 = 800,
+    cuda90 = 900,
     cuda100 = 1000,
     cuda101 = 1010,
     cuda102 = 1020,
@@ -54,6 +56,13 @@ version(CUDA_132) {
     enum cudaSupport = CUDASupport.cuda102;
 } else version(CUDA_101) {
     enum cudaSupport = CUDASupport.cuda101;
-} else {
+} else version(CUDA_100) {
     enum cudaSupport = CUDASupport.cuda100;
+} else version(CUDA_90) {
+    enum cudaSupport = CUDASupport.cuda90;
+} else version(CUDA_80) {
+    enum cudaSupport = CUDASupport.cuda80;
+} else {
+    pragma(msg, "bindbc-cuda: No CUDA_XXX version specified, defaulting to CUDA_80.");
+    enum cudaSupport = CUDASupport.cuda80;
 }
