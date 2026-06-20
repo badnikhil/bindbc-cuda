@@ -6,6 +6,8 @@
 Static and dynamic D bindings for the NVIDIA CUDA Driver API,
 compatible with `@nogc`, `nothrow`, and `-betterC`.
 
+Facing Problems? Discord - @badnikhil
+
 ## Features
 
 - **Dynamic loading** — Load `nvcuda.dll` / `libcuda.so` at runtime via `bindbc-loader`.
