@@ -59,6 +59,7 @@ extern(C) @nogc nothrow {
     alias pcuMemsetD8 = CUresult function(CUdeviceptr dstDevice, ubyte uc, size_t n);
     alias pcuMemsetD32 = CUresult function(CUdeviceptr dstDevice, uint ui, size_t n);
     alias pcuMemGetAddressRange = CUresult function(CUdeviceptr* pbase, size_t* psize, CUdeviceptr dptr);
+    alias pcuMemGetInfo = CUresult function(size_t* free, size_t* total);
     alias pcuMemAllocManaged = CUresult function(CUdeviceptr* dptr, size_t bytesize, uint flags);
     alias pcuMemPrefetchAsync = CUresult function(CUdeviceptr devPtr, size_t count, CUdevice dstDevice, CUstream hStream);
 
@@ -128,6 +129,7 @@ __gshared {
     pcuMemsetD8 cuMemsetD8;
     pcuMemsetD32 cuMemsetD32;
     pcuMemGetAddressRange cuMemGetAddressRange;
+    pcuMemGetInfo cuMemGetInfo;
     pcuMemAllocManaged cuMemAllocManaged;
     pcuMemPrefetchAsync cuMemPrefetchAsync;
 
@@ -268,6 +270,7 @@ CUDASupport loadCUDA(const(char)* libName) {
     lib.bindSymbol(cast(void**)&cuMemsetD8, "cuMemsetD8_v2");
     lib.bindSymbol(cast(void**)&cuMemsetD32, "cuMemsetD32_v2");
     lib.bindSymbol(cast(void**)&cuMemGetAddressRange, "cuMemGetAddressRange_v2");
+    lib.bindSymbol(cast(void**)&cuMemGetInfo, "cuMemGetInfo_v2");
     lib.bindSymbol(cast(void**)&cuMemAllocManaged, "cuMemAllocManaged");
     lib.bindSymbol(cast(void**)&cuMemPrefetchAsync, "cuMemPrefetchAsync");
 
