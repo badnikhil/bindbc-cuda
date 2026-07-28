@@ -372,3 +372,73 @@ CUDASupport loadCUDA(const(char)* libName) {
 
     return loadedVersion;
 }
+
+// Tests, following the BindBC family convention of inline `unittest` blocks
+// run via `dub test` (cf. bindbc-loader's codegen.d — the only tested package
+// in the official family).
+unittest {
+    import core.stdc.stdio : printf;
+
+    // Symbol-load test: the driver library must load and the recently added
+    // memory-management entry points must all be bound (non-null).
+    CUDASupport support = loadCUDA();
+    if(support == CUDASupport.noLibrary){
+        printf("SKIP: CUDA driver library not found; skipping load test.\n");
+        return;
+    }
+    assert(support != CUDASupport.badLibrary,
+           "CUDA library found, but required symbols failed to load");
+
+    assert(cuMemGetInfo !is null);
+    assert(cuMemAllocPitch !is null);
+    assert(cuMemcpy2D !is null);
+    assert(cuMemcpy3D !is null);
+    assert(cuMemsetD8 !is null);
+    assert(cuMemsetD16 !is null);
+    assert(cuMemsetD32 !is null);
+    assert(cuMemsetD2D8 !is null);
+    assert(cuMemsetD2D16 !is null);
+    assert(cuMemsetD2D32 !is null);
+    assert(cuMemcpyHtoDAsync !is null);
+    assert(cuMemcpyDtoHAsync !is null);
+    assert(cuMemcpyDtoDAsync !is null);
+    assert(cuMemcpy2DAsync !is null);
+    assert(cuMemcpy3DAsync !is null);
+    assert(cuMemsetD8Async !is null);
+    assert(cuMemsetD16Async !is null);
+    assert(cuMemsetD32Async !is null);
+    assert(cuMemsetD2D8Async !is null);
+    assert(cuMemsetD2D16Async !is null);
+    assert(cuMemsetD2D32Async !is null);
+    printf("PASS: loadCUDA() and all new memory-management symbols bound.\n");
+
+    // Guarded smoke test: exercise cuMemGetInfo/cuMemAllocPitch on a real
+    // device when one is present; skip gracefully (message, not a failure)
+    // on driverless / GPU-less machines so CI without a GPU still passes.
+    int devCount = 0;
+    if(cuInit(0) != CUresult.CUDA_SUCCESS
+       || cuDeviceGetCount(&devCount) != CUresult.CUDA_SUCCESS
+       || devCount == 0){
+        printf("SKIP: no usable CUDA device; skipping cuMemAllocPitch smoke test.\n");
+        return;
+    }
+
+    CUdevice dev;
+    assert(cuDeviceGet(&dev, 0) == CUresult.CUDA_SUCCESS);
+    CUcontext ctx;
+    assert(cuCtxCreate(&ctx, 0, dev) == CUresult.CUDA_SUCCESS);
+    scope(exit) cuCtxDestroy(ctx);
+
+    size_t freeMem, totalMem;
+    assert(cuMemGetInfo(&freeMem, &totalMem) == CUresult.CUDA_SUCCESS);
+    assert(totalMem > 0 && freeMem <= totalMem);
+
+    CUdeviceptr p;
+    size_t pitch;
+    // ElementSizeBytes must be 4, 8 or 16; 33 floats wide forces row padding.
+    assert(cuMemAllocPitch(&p, &pitch, 33 * float.sizeof, 7, float.sizeof)
+           == CUresult.CUDA_SUCCESS);
+    assert(pitch >= 33 * float.sizeof);
+    assert(cuMemFree(p) == CUresult.CUDA_SUCCESS);
+    printf("PASS: cuMemAllocPitch smoke test on device 0.\n");
+}
