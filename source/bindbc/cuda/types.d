@@ -30,6 +30,9 @@ alias CUstream = CUstream_st*;
 struct CUevent_st;
 alias CUevent = CUevent_st*;
 
+struct CUarray_st;
+alias CUarray = CUarray_st*;
+
 // Enumerations
 
 enum CUresult {
@@ -167,3 +170,60 @@ enum CUevent_flags {
 enum CU_MEM_ATTACH_GLOBAL = 0x1;
 enum CU_MEM_ATTACH_HOST   = 0x2;
 enum CU_MEM_ATTACH_SINGLE = 0x4;
+
+/// Memory types for the 2D/3D memcpy descriptors.
+enum CUmemorytype {
+    CU_MEMORYTYPE_HOST    = 0x01,
+    CU_MEMORYTYPE_DEVICE  = 0x02,
+    CU_MEMORYTYPE_ARRAY   = 0x03,
+    CU_MEMORYTYPE_UNIFIED = 0x04,
+}
+
+/// 2D memory copy descriptor for cuMemcpy2D (matches CUDA_MEMCPY2D_st).
+struct CUDA_MEMCPY2D {
+    size_t srcXInBytes;        /// Source X offset, in bytes
+    size_t srcY;               /// Source Y offset, in rows
+    CUmemorytype srcMemoryType;
+    const(void)* srcHost;      /// Used when srcMemoryType is host
+    CUdeviceptr srcDevice;     /// Used when srcMemoryType is device/unified
+    CUarray srcArray;          /// Used when srcMemoryType is array
+    size_t srcPitch;           /// Source row pitch, in bytes (ignored for arrays)
+    size_t dstXInBytes;        /// Destination X offset, in bytes
+    size_t dstY;               /// Destination Y offset, in rows
+    CUmemorytype dstMemoryType;
+    void* dstHost;             /// Used when dstMemoryType is host
+    CUdeviceptr dstDevice;     /// Used when dstMemoryType is device/unified
+    CUarray dstArray;          /// Used when dstMemoryType is array
+    size_t dstPitch;           /// Destination row pitch, in bytes (ignored for arrays)
+    size_t WidthInBytes;       /// Width of the copied region, in bytes
+    size_t Height;             /// Number of rows to copy
+}
+
+/// 3D memory copy descriptor for cuMemcpy3D (matches CUDA_MEMCPY3D_st).
+struct CUDA_MEMCPY3D {
+    size_t srcXInBytes;        /// Source X offset, in bytes
+    size_t srcY;               /// Source Y offset, in rows
+    size_t srcZ;               /// Source Z offset, in slices
+    size_t srcLOD;             /// Source LOD (mipmap level)
+    CUmemorytype srcMemoryType;
+    const(void)* srcHost;
+    CUdeviceptr srcDevice;
+    CUarray srcArray;
+    void* reserved0;           /// Must be null
+    size_t srcPitch;           /// Source row pitch, in bytes
+    size_t srcHeight;          /// Source slice height, in rows (ignored for arrays)
+    size_t dstXInBytes;        /// Destination X offset, in bytes
+    size_t dstY;               /// Destination Y offset, in rows
+    size_t dstZ;               /// Destination Z offset, in slices
+    size_t dstLOD;             /// Destination LOD (mipmap level)
+    CUmemorytype dstMemoryType;
+    void* dstHost;
+    CUdeviceptr dstDevice;
+    CUarray dstArray;
+    void* reserved1;           /// Must be null
+    size_t dstPitch;           /// Destination row pitch, in bytes
+    size_t dstHeight;          /// Destination slice height, in rows (ignored for arrays)
+    size_t WidthInBytes;       /// Width of the copied region, in bytes
+    size_t Height;             /// Number of rows per slice
+    size_t Depth;              /// Number of slices to copy
+}

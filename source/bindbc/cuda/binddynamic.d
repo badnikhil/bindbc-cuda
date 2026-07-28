@@ -52,16 +52,36 @@ extern(C) @nogc nothrow {
 
     // Memory management (v2 API)
     alias pcuMemAlloc = CUresult function(CUdeviceptr* dptr, size_t bytesize);
+    alias pcuMemAllocPitch = CUresult function(CUdeviceptr* dptr, size_t* pPitch, size_t WidthInBytes, size_t Height, uint ElementSizeBytes);
     alias pcuMemFree = CUresult function(CUdeviceptr dptr);
     alias pcuMemcpyHtoD = CUresult function(CUdeviceptr dstDevice, const(void)* srcHost, size_t byteCount);
     alias pcuMemcpyDtoH = CUresult function(void* dstHost, CUdeviceptr srcDevice, size_t byteCount);
     alias pcuMemcpyDtoD = CUresult function(CUdeviceptr dstDevice, CUdeviceptr srcDevice, size_t byteCount);
+    alias pcuMemcpy2D = CUresult function(const(CUDA_MEMCPY2D)* pCopy);
+    alias pcuMemcpy3D = CUresult function(const(CUDA_MEMCPY3D)* pCopy);
     alias pcuMemsetD8 = CUresult function(CUdeviceptr dstDevice, ubyte uc, size_t n);
+    alias pcuMemsetD16 = CUresult function(CUdeviceptr dstDevice, ushort us, size_t n);
     alias pcuMemsetD32 = CUresult function(CUdeviceptr dstDevice, uint ui, size_t n);
+    alias pcuMemsetD2D8 = CUresult function(CUdeviceptr dstDevice, size_t dstPitch, ubyte uc, size_t Width, size_t Height);
+    alias pcuMemsetD2D16 = CUresult function(CUdeviceptr dstDevice, size_t dstPitch, ushort us, size_t Width, size_t Height);
+    alias pcuMemsetD2D32 = CUresult function(CUdeviceptr dstDevice, size_t dstPitch, uint ui, size_t Width, size_t Height);
     alias pcuMemGetAddressRange = CUresult function(CUdeviceptr* pbase, size_t* psize, CUdeviceptr dptr);
     alias pcuMemGetInfo = CUresult function(size_t* free, size_t* total);
     alias pcuMemAllocManaged = CUresult function(CUdeviceptr* dptr, size_t bytesize, uint flags);
     alias pcuMemPrefetchAsync = CUresult function(CUdeviceptr devPtr, size_t count, CUdevice dstDevice, CUstream hStream);
+
+    // Memory management — async (stream-ordered) variants
+    alias pcuMemcpyHtoDAsync = CUresult function(CUdeviceptr dstDevice, const(void)* srcHost, size_t byteCount, CUstream hStream);
+    alias pcuMemcpyDtoHAsync = CUresult function(void* dstHost, CUdeviceptr srcDevice, size_t byteCount, CUstream hStream);
+    alias pcuMemcpyDtoDAsync = CUresult function(CUdeviceptr dstDevice, CUdeviceptr srcDevice, size_t byteCount, CUstream hStream);
+    alias pcuMemcpy2DAsync = CUresult function(const(CUDA_MEMCPY2D)* pCopy, CUstream hStream);
+    alias pcuMemcpy3DAsync = CUresult function(const(CUDA_MEMCPY3D)* pCopy, CUstream hStream);
+    alias pcuMemsetD8Async = CUresult function(CUdeviceptr dstDevice, ubyte uc, size_t n, CUstream hStream);
+    alias pcuMemsetD16Async = CUresult function(CUdeviceptr dstDevice, ushort us, size_t n, CUstream hStream);
+    alias pcuMemsetD32Async = CUresult function(CUdeviceptr dstDevice, uint ui, size_t n, CUstream hStream);
+    alias pcuMemsetD2D8Async = CUresult function(CUdeviceptr dstDevice, size_t dstPitch, ubyte uc, size_t Width, size_t Height, CUstream hStream);
+    alias pcuMemsetD2D16Async = CUresult function(CUdeviceptr dstDevice, size_t dstPitch, ushort us, size_t Width, size_t Height, CUstream hStream);
+    alias pcuMemsetD2D32Async = CUresult function(CUdeviceptr dstDevice, size_t dstPitch, uint ui, size_t Width, size_t Height, CUstream hStream);
 
     // Stream management
     alias pcuStreamCreate = CUresult function(CUstream* phStream, uint flags);
@@ -122,16 +142,35 @@ __gshared {
     pcuModuleGetFunction cuModuleGetFunction;
 
     pcuMemAlloc cuMemAlloc;
+    pcuMemAllocPitch cuMemAllocPitch;
     pcuMemFree cuMemFree;
     pcuMemcpyHtoD cuMemcpyHtoD;
     pcuMemcpyDtoH cuMemcpyDtoH;
     pcuMemcpyDtoD cuMemcpyDtoD;
+    pcuMemcpy2D cuMemcpy2D;
+    pcuMemcpy3D cuMemcpy3D;
     pcuMemsetD8 cuMemsetD8;
+    pcuMemsetD16 cuMemsetD16;
     pcuMemsetD32 cuMemsetD32;
+    pcuMemsetD2D8 cuMemsetD2D8;
+    pcuMemsetD2D16 cuMemsetD2D16;
+    pcuMemsetD2D32 cuMemsetD2D32;
     pcuMemGetAddressRange cuMemGetAddressRange;
     pcuMemGetInfo cuMemGetInfo;
     pcuMemAllocManaged cuMemAllocManaged;
     pcuMemPrefetchAsync cuMemPrefetchAsync;
+
+    pcuMemcpyHtoDAsync cuMemcpyHtoDAsync;
+    pcuMemcpyDtoHAsync cuMemcpyDtoHAsync;
+    pcuMemcpyDtoDAsync cuMemcpyDtoDAsync;
+    pcuMemcpy2DAsync cuMemcpy2DAsync;
+    pcuMemcpy3DAsync cuMemcpy3DAsync;
+    pcuMemsetD8Async cuMemsetD8Async;
+    pcuMemsetD16Async cuMemsetD16Async;
+    pcuMemsetD32Async cuMemsetD32Async;
+    pcuMemsetD2D8Async cuMemsetD2D8Async;
+    pcuMemsetD2D16Async cuMemsetD2D16Async;
+    pcuMemsetD2D32Async cuMemsetD2D32Async;
 
     pcuStreamCreate cuStreamCreate;
     pcuStreamDestroy cuStreamDestroy;
@@ -263,16 +302,37 @@ CUDASupport loadCUDA(const(char)* libName) {
 
     //  Memory management (v2)
     lib.bindSymbol(cast(void**)&cuMemAlloc, "cuMemAlloc_v2");
+    lib.bindSymbol(cast(void**)&cuMemAllocPitch, "cuMemAllocPitch_v2");
     lib.bindSymbol(cast(void**)&cuMemFree, "cuMemFree_v2");
     lib.bindSymbol(cast(void**)&cuMemcpyHtoD, "cuMemcpyHtoD_v2");
     lib.bindSymbol(cast(void**)&cuMemcpyDtoH, "cuMemcpyDtoH_v2");
     lib.bindSymbol(cast(void**)&cuMemcpyDtoD, "cuMemcpyDtoD_v2");
+    lib.bindSymbol(cast(void**)&cuMemcpy2D, "cuMemcpy2D_v2");
+    lib.bindSymbol(cast(void**)&cuMemcpy3D, "cuMemcpy3D_v2");
     lib.bindSymbol(cast(void**)&cuMemsetD8, "cuMemsetD8_v2");
+    lib.bindSymbol(cast(void**)&cuMemsetD16, "cuMemsetD16_v2");
     lib.bindSymbol(cast(void**)&cuMemsetD32, "cuMemsetD32_v2");
+    lib.bindSymbol(cast(void**)&cuMemsetD2D8, "cuMemsetD2D8_v2");
+    lib.bindSymbol(cast(void**)&cuMemsetD2D16, "cuMemsetD2D16_v2");
+    lib.bindSymbol(cast(void**)&cuMemsetD2D32, "cuMemsetD2D32_v2");
     lib.bindSymbol(cast(void**)&cuMemGetAddressRange, "cuMemGetAddressRange_v2");
     lib.bindSymbol(cast(void**)&cuMemGetInfo, "cuMemGetInfo_v2");
     lib.bindSymbol(cast(void**)&cuMemAllocManaged, "cuMemAllocManaged");
     lib.bindSymbol(cast(void**)&cuMemPrefetchAsync, "cuMemPrefetchAsync");
+
+    // Memory management — async variants (memcpy async are v2; the memset
+    // async entry points post-date the v2 ABI break and have no _v2 suffix)
+    lib.bindSymbol(cast(void**)&cuMemcpyHtoDAsync, "cuMemcpyHtoDAsync_v2");
+    lib.bindSymbol(cast(void**)&cuMemcpyDtoHAsync, "cuMemcpyDtoHAsync_v2");
+    lib.bindSymbol(cast(void**)&cuMemcpyDtoDAsync, "cuMemcpyDtoDAsync_v2");
+    lib.bindSymbol(cast(void**)&cuMemcpy2DAsync, "cuMemcpy2DAsync_v2");
+    lib.bindSymbol(cast(void**)&cuMemcpy3DAsync, "cuMemcpy3DAsync_v2");
+    lib.bindSymbol(cast(void**)&cuMemsetD8Async, "cuMemsetD8Async");
+    lib.bindSymbol(cast(void**)&cuMemsetD16Async, "cuMemsetD16Async");
+    lib.bindSymbol(cast(void**)&cuMemsetD32Async, "cuMemsetD32Async");
+    lib.bindSymbol(cast(void**)&cuMemsetD2D8Async, "cuMemsetD2D8Async");
+    lib.bindSymbol(cast(void**)&cuMemsetD2D16Async, "cuMemsetD2D16Async");
+    lib.bindSymbol(cast(void**)&cuMemsetD2D32Async, "cuMemsetD2D32Async");
 
     // Stream management 
     lib.bindSymbol(cast(void**)&cuStreamCreate, "cuStreamCreate");
