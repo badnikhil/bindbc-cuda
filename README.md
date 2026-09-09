@@ -3,7 +3,7 @@
 [![DUB Package](https://img.shields.io/dub/v/bindbc-cuda.svg)](https://code.dlang.org/packages/bindbc-cuda)
 [![License](https://img.shields.io/badge/license-BSL--1.0-blue.svg)](https://boost.org/LICENSE_1_0.txt)
 
-Static and dynamic D bindings for the NVIDIA CUDA Driver API,
+Static and dynamic D bindings for the NVIDIA CUDA Driver API and cuBLAS,
 compatible with `@nogc`, `nothrow`, and `-betterC`.
 
 Facing Problems? Discord - @badnikhil
@@ -15,6 +15,9 @@ Facing Problems? Discord - @badnikhil
 - **BetterC compatible** — Zero D runtime dependency.
 - **Versioned symbols** — Binds to the modern `_v2` Driver API entry points.
 - **Multi-version support** — Covers CUDA 10.0 through 12.4.
+- **cuBLAS** — Handles, streams, pointer/math modes, GEMM (`Sgemm`, `Dgemm`,
+  `SgemmStridedBatched`, `GemmEx`), and the Level 1/2/3 routines a tensor
+  library needs. Loaded separately via `loadCUBLAS()`.
 
 ## Adding to your project
 
@@ -93,6 +96,41 @@ void main() {
 }
 ```
 
+### cuBLAS
+
+cuBLAS is a separate shared library, so it has its own loader. Call it in
+addition to `loadCUDA()`; either may succeed without the other.
+
+```d
+if(loadCUBLAS() < CUDASupport.cuda80) return;   // noLibrary / badLibrary
+
+cublasHandle_t handle;
+cublasCreate(&handle);
+scope(exit) cublasDestroy(handle);
+```
+
+**cuBLAS is column-major.** A row-major `m x n` matrix is bit-identical in
+memory to a column-major `n x m` one, so row-major operands are handled by
+swapping the operands and the `m`/`n` extents — using `C^T = B^T * A^T` —
+rather than by transposing:
+
+```d
+// Row-major A (M x K), B (K x N), C (M x N); computes C = A * B.
+cublasSgemm(handle,
+    cublasOperation_t.CUBLAS_OP_N, cublasOperation_t.CUBLAS_OP_N,
+    N, M, K,                      // N and M swapped
+    &alpha,
+    cast(const(float)*)dB, N,     // B passed first
+    cast(const(float)*)dA, K,
+    &beta,
+    cast(float*)dC, N);
+```
+
+Matrix and vector arguments are device addresses; `CUdeviceptr` values from
+`cuMemAlloc` are passed with a cast, as above. See `test.d` for a complete
+SGEMM validated against a CPU reference. `cublasStatusString` renders a
+`cublasStatus_t` for reporting.
+
 ## Folder structure
 
 ```
@@ -105,6 +143,7 @@ bindbc-cuda/
             ├── package.d       — Public import aggregator
             ├── config.d        — Version selection, staticBinding flag
             ├── types.d         — Opaque handles, enums, flags
+            ├── cublas.d        — cuBLAS types and dynamic loading
             └── binddynamic.d   — Dynamic symbol loading via bindbc-loader
 ```
 

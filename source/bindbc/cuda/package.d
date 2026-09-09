@@ -9,6 +9,7 @@ module bindbc.cuda;
 
 public import bindbc.cuda.config;
 public import bindbc.cuda.types;
+public import bindbc.cuda.cublas;
 
 static if(!staticBinding) {
     public import bindbc.cuda.binddynamic;
